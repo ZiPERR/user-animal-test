@@ -1,7 +1,11 @@
 # API documentation
 
 Перед работой вам нужно указать свои данные в application.properties, такие как: название базы данных
-**postgre_database**, имя и пароль пользователя Postgre **username**, **password**
+**database_name**, имя и пароль пользователя Postgre **username**, **password**
+
+Check if you're admin ```GET http://localhost:8080/api/admin/get```
+
+Export animals to Excel and download ```GET http://localhost:8080/api/excel/export```
 
 Username Available ```GET http://localhost:8080/api/usernameAvailability/{username}/isUsernameAvailable```
 
