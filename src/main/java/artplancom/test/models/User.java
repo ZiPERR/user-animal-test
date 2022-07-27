@@ -1,6 +1,7 @@
 package artplancom.test.models;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import org.hibernate.annotations.ManyToAny;
 
 import javax.persistence.*;
 import javax.validation.constraints.NotEmpty;
@@ -26,6 +27,13 @@ public class User {
 
     @OneToMany(mappedBy="user", fetch = FetchType.LAZY, cascade = {CascadeType.PERSIST})
     private Set<Animal> animals;
+
+    @ManyToMany(cascade=CascadeType.ALL, fetch = FetchType.EAGER)
+    @JoinTable(name = "users_roles",
+            joinColumns = @JoinColumn(name="user_id"),
+            inverseJoinColumns = @JoinColumn(name="role_id"))
+
+    private Set<Role> roles = new HashSet<>();
 
     public String getUsername() {
         return username;
@@ -59,4 +67,15 @@ public class User {
         this.userId = id;
     }
 
+    public Set<Role> getRoles() {
+        return roles;
+    }
+
+    public void setRoles(Set<Role> roles) {
+        this.roles = roles;
+    }
+
+    public void addRole(Role role){
+        this.roles.add(role);
+    }
 }

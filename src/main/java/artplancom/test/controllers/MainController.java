@@ -1,12 +1,16 @@
 package artplancom.test.controllers;
 
+import artplancom.test.misc.ExcelFileService;
 import artplancom.test.models.Animal;
+import artplancom.test.models.Role;
 import artplancom.test.models.User;
 import artplancom.test.repositories.AnimalsRepository;
+import artplancom.test.repositories.RolesRepository;
 import artplancom.test.repositories.UsersRepository;
 import artplancom.test.security.CustomUserDetails;
 import artplancom.test.services.AnimalService;
 import artplancom.test.services.UserService;
+import org.apache.poi.util.IOUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,7 +19,11 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.util.List;
 import java.util.Set;
 
 @RestController
@@ -28,6 +36,9 @@ public class MainController {
     private AnimalsRepository animalsRepository;
 
     @Autowired
+    private RolesRepository rolesRepository;
+
+    @Autowired
     BCryptPasswordEncoder bCryptPasswordEncoder;
 
     @Autowired
@@ -36,6 +47,14 @@ public class MainController {
     @Autowired
     private AnimalService animalService;
 
+    @Autowired
+    private ExcelFileService excelFileService;
+
+    @GetMapping(value = "/api/admin/get", produces = {"application/json"})
+    private ResponseEntity isAdmin(){
+        return ResponseEntity.ok("{\n\"status\": 200,\n\"message\": \"You're admin\"");
+    }
+
     @GetMapping(value = "/api/usernameAvailability/{username}/isUsernameAvailable", produces = {"application/json"})
     private ResponseEntity getUsernameAvailability(@PathVariable String username) {
 
@@ -43,8 +62,7 @@ public class MainController {
             return ResponseEntity
                     .ok("{\n\"status\": 200,\n\"message\": \"This username has been already taken\"\n}");
         }
-        return ResponseEntity.ok()
-                .body("{\n\"status\": 200,\n\"message\": \"This username is available\"\n}");
+        return ResponseEntity.ok("{\n\"status\": 200,\n\"message\": \"This username is available\"\n}");
     }
 
     // GET ALL USERS
@@ -145,6 +163,7 @@ public class MainController {
                     .body("{\n\"status\": 409, \n\"message\": \"This username already exists!\"\n}");
         }
         user.setPassword(bCryptPasswordEncoder.encode(user.getPassword()));
+        user.addRole(rolesRepository.findByName("USER"));
         usersRepository.save(user);
         return ResponseEntity
                 .ok("{\n\"status\": 200, \n\"message\": \"You have been signed up successfully!\"\n}");
@@ -236,4 +255,24 @@ public class MainController {
         return ResponseEntity.ok("{\n\"status\": 200, \n\"message\": \""
                 + newAnimal.getNickname() + "'s information have been edited successfully\"\n}");
     }
+
+    @GetMapping("/api/excel/export")
+    private void exportToExcel(HttpServletResponse response) throws IOException {
+        List<Animal> animals = animalsRepository.findAll();
+        ByteArrayInputStream byteArrayInputStream = excelFileService.export(animals);
+        response.setContentType("application/octet-stream");
+        response.setHeader("Content-Disposition", "attachment; filename=animal_info.xlsx");
+        IOUtils.copy(byteArrayInputStream, response.getOutputStream());
+    }
+
+    @PostMapping("/api/role/add")
+    private ResponseEntity addRoleToDatabase(@RequestBody Role role){
+        if(rolesRepository.findByName(role.getName()) != null){
+            return ResponseEntity
+                    .status(HttpStatus.NOT_FOUND)
+                    .body("{\n\"status\": 409, \n\"message\": \"This role already exists\"\n}");
+        }
+        return ResponseEntity.ok("{\n\"status\": 200, \n\"message\": \"Role have been added successfully\" \n");
+    }
+
 }

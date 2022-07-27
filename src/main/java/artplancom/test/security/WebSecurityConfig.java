@@ -54,6 +54,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
                 .antMatchers("/login").permitAll()
                 .antMatchers("/api/register").permitAll()
                 .antMatchers("/api/registration_process").permitAll()
+                .antMatchers("/api/admin/**").hasAuthority("ADMIN")
                 .anyRequest().authenticated()
                 .and()
                 .addFilterAt(customLoginFilter, UsernamePasswordAuthenticationFilter.class)
