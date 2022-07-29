@@ -48,12 +48,14 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
         customLoginFilter.setAuthenticationManager(authenticationManager());
 
         httpSecurity.authorizeRequests()
-                .antMatchers("/api/user/**").authenticated()
-                .antMatchers("/api/animal/**").authenticated()
+                .antMatchers("/api/users/**").authenticated()
+                .antMatchers("/api/animals/**").authenticated()
+                .antMatchers("/api/export/excel").authenticated()
                 .antMatchers("/api/usernameAvailability/**").permitAll()
                 .antMatchers("/login").permitAll()
-                .antMatchers("/api/register").permitAll()
-                .antMatchers("/api/registration_process").permitAll()
+                .antMatchers("/register").permitAll()
+                .antMatchers("/api-docs").permitAll()
+                .antMatchers("/swagger-ui/**").permitAll()
                 .antMatchers("/api/admin/**").hasAuthority("ADMIN")
                 .anyRequest().authenticated()
                 .and()

@@ -5,7 +5,7 @@ plugins {
 }
 
 group = 'artplancom'
-version = '0.1'
+version = '0.2'
 sourceCompatibility = '11'
 
 repositories {
@@ -21,6 +21,7 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
 	implementation 'org.postgresql:postgresql:42.4.0'
 	implementation 'org.springframework.boot:spring-boot-starter-web'
+	implementation 'org.springdoc:springdoc-openapi-ui:1.6.9'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 }
 
