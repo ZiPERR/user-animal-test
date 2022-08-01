@@ -6,7 +6,7 @@ import artplancom.test.repositories.AnimalsRepository;
 import artplancom.test.repositories.RolesRepository;
 import artplancom.test.repositories.UsersRepository;
 import artplancom.test.security.CustomUserDetails;
-import artplancom.test.services.UserService;
+import artplancom.test.services.CustomUserDetailsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -28,7 +28,7 @@ public class UserController {
     private AnimalsRepository animalsRepository;
 
     @Autowired
-    private UserService userService;
+    private CustomUserDetailsService userService;
 
     @Autowired
     private RolesRepository rolesRepository;
@@ -37,7 +37,7 @@ public class UserController {
     private BCryptPasswordEncoder bCryptPasswordEncoder;
 
     @GetMapping(value = "/api/admin", produces = {"application/json"})
-    private ResponseEntity isAdmin(){
+    private ResponseEntity isAdmin() {
         return ResponseEntity.ok("{\n\"status\": 200,\n\"message\": \"You're admin\"");
     }
 
@@ -151,13 +151,13 @@ public class UserController {
                 .ok("{\n\"status\": 200, \n\"message\": \"You have been signed up successfully!\"\n}");
     }
 
-    @DeleteMapping(value="/api/users/{userId}", produces = "application/json")
-    private ResponseEntity deleteUser(@PathVariable Long userId){
+    @DeleteMapping(value = "/api/users/{userId}", produces = "application/json")
+    private ResponseEntity deleteUser(@PathVariable Long userId) {
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         User user = usersRepository.findById(userId).get();
 
-        if(!authentication.getAuthorities().contains("ADMIN")){
+        if (!authentication.getAuthorities().contains("ADMIN")) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body("{\n\"status\": 401, \n\"message\": \"You don't have access\"\n}");
         }
@@ -169,7 +169,6 @@ public class UserController {
         usersRepository.delete(user);
         return ResponseEntity.ok("{\n\"status\": 200, \n\"message\": \"User have been deleted successfully!\"");
     }
-
 
 
 }
