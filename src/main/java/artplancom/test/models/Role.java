@@ -17,16 +17,4 @@ public class Role {
     @Column(nullable = false, length = 45)
     private String name;
 
-    public Role() {
-
-    }
-
-    public Role(String name) {
-        this.name = name;
-    }
-
-    public Role(Long id) {
-        this.id = id;
-    }
-
 }

@@ -5,11 +5,13 @@ import artplancom.test.models.User;
 import artplancom.test.repositories.RolesRepository;
 import artplancom.test.repositories.UsersRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+@Service
 public class RoleService {
 
     @Autowired
@@ -20,6 +22,10 @@ public class RoleService {
 
     public List<Role> findAll() {
         return rolesRepository.findAll();
+    }
+
+    public Role findByName(String name) {
+        return rolesRepository.findByName(name);
     }
 
     public Optional<Role> findById(Long id) {

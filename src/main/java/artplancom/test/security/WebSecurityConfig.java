@@ -1,5 +1,6 @@
 package artplancom.test.security;
 
+import artplancom.test.repositories.UsersRepository;
 import artplancom.test.services.CustomUserDetailsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -16,11 +17,14 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @Configuration
 @EnableWebSecurity
 public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
-    @Autowired
 
+    @Autowired
+    private UsersRepository usersRepository;
+
+    @Autowired
     @Bean
     public UserDetailsService userDetailsService() {
-        return new CustomUserDetailsService();
+        return new CustomUserDetailsService(this.usersRepository);
     }
 
     @Bean
