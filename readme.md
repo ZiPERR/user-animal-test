@@ -1,12 +1,9 @@
-Перед работой вам нужно указать свои данные в application.properties, такие как: название базы данных **database_name**, имя и пароль пользователя Postgre **username**, **password**
-
-P.S. Добавлю миграцию
-
+You need to type in your **{database_name}**, **{username}** and **{password}** in **application.properties**.
 ### API documentation
 
 localhost:8080/api-docs - JSON
 
-localhost:8080/swagger-ui/index.html + сверху написать /api-docs
+localhost:8080/swagger-ui/index.html + type in /api-docs in search on the page above
 
 
 
