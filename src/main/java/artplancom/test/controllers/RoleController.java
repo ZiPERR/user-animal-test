@@ -1,7 +1,8 @@
 package artplancom.test.controllers;
 
+import artplancom.test.exceptions.RoleAlreadyExistsException;
 import artplancom.test.models.Role;
-import artplancom.test.repositories.RolesRepository;
+import artplancom.test.services.RoleService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,16 +15,15 @@ import org.springframework.web.bind.annotation.RestController;
 public class RoleController {
 
     @Autowired
-    private RolesRepository rolesRepository;
+    private RoleService roleService;
 
     @PostMapping("/api/roles")
-    private ResponseEntity addRoleToDatabase(@RequestBody Role role){
-        if(rolesRepository.findByName(role.getName()) != null){
-            return ResponseEntity
-                    .status(HttpStatus.CONFLICT)
-                    .body("{\n\"status\": 409, \n\"message\": \"This role already exists\"\n}");
+    private ResponseEntity<Role> addRoleToDatabase(@RequestBody Role role) throws
+            RoleAlreadyExistsException {
+        if (roleService.findByName(role.getName()) != null) {
+            throw new RoleAlreadyExistsException();
         }
-        rolesRepository.save(role);
-        return ResponseEntity.ok("{\n\"status\": 200, \n\"message\": \"Role have been added successfully\" \n");
+        roleService.save(role);
+        return ResponseEntity.status(HttpStatus.OK).body(role);
     }
 }

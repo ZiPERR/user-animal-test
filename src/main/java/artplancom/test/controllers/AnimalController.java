@@ -1,7 +1,8 @@
 package artplancom.test.controllers;
 
+import artplancom.test.exceptions.AnimalAlreadyExistsException;
+import artplancom.test.exceptions.AnimalNotFoundException;
 import artplancom.test.models.Animal;
-import artplancom.test.repositories.AnimalsRepository;
 import artplancom.test.services.AnimalService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -9,79 +10,66 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
+import java.util.List;
 
 @RestController
 public class AnimalController {
 
     @Autowired
-    private AnimalsRepository animalsRepository;
-
-    @Autowired
     private AnimalService animalService;
 
     @GetMapping(value = "/api/animals")
-    private ResponseEntity getAllAnimals() {
-        return ResponseEntity.ok().body(animalsRepository.findAll());
+    private ResponseEntity<List<Animal>> getAllAnimals() {
+        return ResponseEntity.status(HttpStatus.OK).body(animalService.findAll());
     }
 
     @GetMapping(value = "/api/animals/{animalId}", produces = {"application/json"})
-    private ResponseEntity getOneAnimal(@PathVariable Long animalId) {
-        if (animalsRepository.findById(animalId).isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body("{\n\"status\": 404,\n\"message\": \"This animal doesn't exist\"\n}");
+    private ResponseEntity<Animal> getOneAnimal(@PathVariable Long animalId) throws AnimalNotFoundException {
+        if (animalService.findById(animalId).isEmpty()) {
+            throw new AnimalNotFoundException();
         }
-        return ResponseEntity
-                .ok(animalsRepository.findById(animalId));
+        return ResponseEntity.ok(animalService.findById(animalId).get());
     }
 
     @PostMapping(value = "/api/animals", produces = "application/json")
-    private ResponseEntity createAnimal(@Valid @RequestBody Animal animal) {
+    private ResponseEntity<Animal> createAnimal(@Valid @RequestBody Animal animal) throws AnimalAlreadyExistsException {
 
-        if (animalsRepository.findByNickname(animal.getNickname()).isPresent()) {
-            return ResponseEntity
-                    .status(HttpStatus.CONFLICT)
-                    .body("{\n\"status\": 409, \n\"message\": \"This animal has been created already\"\n}");
+        if (animalService.findByNickname(animal.getNickname()).isPresent()) {
+            throw new AnimalAlreadyExistsException();
         }
-        animalsRepository.save(animal);
 
-        return ResponseEntity
-                .ok("{\n\"status\": 200,\n\"message\": \"Animal "
-                        + animal.getNickname() + " have been created successfully\"\n}");
+        animalService.saveAnimal(animal);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(animal);
     }
 
     @DeleteMapping(value = "/api/animals/{animalId}", produces = "application/json")
-    private ResponseEntity deleteAnimal(@PathVariable Long animalId) {
+    private ResponseEntity<Animal> deleteAnimal(@PathVariable Long animalId) throws AnimalNotFoundException {
 
-        if (animalsRepository.findById(animalId).isEmpty()) {
-            return ResponseEntity
-                    .status(HttpStatus.NOT_FOUND)
-                    .body("{\n\"status\": 404, \n\"message\": \"This animal doesn't exist\"\n}");
+        if (animalService.findById(animalId).isEmpty()) {
+            throw new AnimalNotFoundException();
         }
 
-        Animal animal = animalsRepository.findById(animalId).get();
+        Animal animal = animalService.findById(animalId).get();
 
-        animalsRepository.delete(animal);
+        animalService.deleteAnimal(animal);
 
-        return ResponseEntity
-                .ok("{\n\"status\": 200, \n\"message\": \"Animal " + animal.getNickname() + " have been deleted successfully\"\n}");
+        return ResponseEntity.status(HttpStatus.OK).body(animal);
     }
 
     @PutMapping(value = "/api/animals/{animalId}", produces = "application/json")
-    private ResponseEntity editAnimal(@PathVariable Long animalId, @RequestBody Animal newAnimal) {
+    private ResponseEntity<Animal> editAnimal(@PathVariable Long animalId, @RequestBody Animal newAnimal) throws AnimalNotFoundException {
 
-        if (animalsRepository.findById(animalId).isEmpty()) {
-            return ResponseEntity
-                    .status(HttpStatus.NOT_FOUND)
-                    .body("{\n\"status\": 404, \n\"message\": \"This animal doesn't exist\"\n}");
+        if (animalService.findById(animalId).isEmpty()) {
+            throw new AnimalNotFoundException();
         }
 
-        Animal oldAnimal = animalService.findById(animalId);
+        Animal oldAnimal = animalService.findById(animalId).get();
         oldAnimal.setSpecies(newAnimal.getSpecies());
         oldAnimal.setBirthDate(newAnimal.getBirthDate());
         oldAnimal.setSex(newAnimal.getSex());
         oldAnimal.setNickname(newAnimal.getNickname());
-        animalsRepository.save(oldAnimal);
-        return ResponseEntity.ok("{\n\"status\": 200, \n\"message\": \""
-                + newAnimal.getNickname() + "'s information have been edited successfully\"\n}");
+        animalService.saveAnimal(oldAnimal);
+        return ResponseEntity.status(HttpStatus.OK).body(oldAnimal);
     }
 }

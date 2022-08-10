@@ -1,12 +1,12 @@
 package artplancom.test.controllers;
 
+import artplancom.test.exceptions.*;
 import artplancom.test.models.Animal;
 import artplancom.test.models.User;
-import artplancom.test.repositories.AnimalsRepository;
-import artplancom.test.repositories.RolesRepository;
-import artplancom.test.repositories.UsersRepository;
 import artplancom.test.security.CustomUserDetails;
+import artplancom.test.services.AnimalService;
 import artplancom.test.services.CustomUserDetailsService;
+import artplancom.test.services.RoleService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,158 +16,141 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
+import java.util.List;
 import java.util.Set;
 
 @RestController
 public class UserController {
 
     @Autowired
-    private UsersRepository usersRepository;
-
-    @Autowired
-    private AnimalsRepository animalsRepository;
-
-    @Autowired
     private CustomUserDetailsService userService;
 
     @Autowired
-    private RolesRepository rolesRepository;
+    private AnimalService animalService;
+
+    @Autowired
+    private RoleService roleService;
 
     @Autowired
     private BCryptPasswordEncoder bCryptPasswordEncoder;
 
     @GetMapping(value = "/api/admin", produces = {"application/json"})
-    private ResponseEntity isAdmin() {
-        return ResponseEntity.ok("{\n\"status\": 200,\n\"message\": \"You're admin\"");
+    private void isAdmin() {
+        ResponseEntity.status(HttpStatus.OK);
     }
 
     @GetMapping(value = "/api/users", produces = {"application/json"})
-    private ResponseEntity getAllUsers() {
-        return ResponseEntity.ok().body(usersRepository.findAll());
+    private ResponseEntity<List<User>> getAllUsers() {
+        return ResponseEntity.ok().body(userService.findAll());
     }
 
     @GetMapping(value = "/api/users/{userId}", produces = {"application/json"})
-    private ResponseEntity getOneUser(@PathVariable Long userId) {
-        if (usersRepository.findById(userId).isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body("{\n\"status\": 404,\n\"message\": \"This user doesn't exist\"\n}");
+    private ResponseEntity<User> getOneUser(@PathVariable Long userId) throws
+            UserNotFoundException {
+        if (userService.findById(userId).isEmpty()) {
+            throw new UserNotFoundException();
         }
-        return ResponseEntity
-                .ok(usersRepository.findById(userId));
+        return ResponseEntity.ok(userService.findById(userId).get());
     }
 
     @GetMapping(value = "/api/users/{userId}/animals", produces = {"application/json"})
-    private ResponseEntity getUserAnimal(@PathVariable Long userId) {
+    private ResponseEntity<Set<Animal>> getUserAnimal(@PathVariable Long userId) throws
+            UserNotFoundException {
 
-        if (usersRepository.findById(userId).isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body("{\n\"status\": 404,\n\"message\": \"This user doesn't exist\"\n}");
+        if (userService.findById(userId).isEmpty()) {
+            throw new UserNotFoundException();
         }
 
-        Set<Animal> animals = usersRepository.findById(userId).get().getAnimals();
+        Set<Animal> animals = userService.findById(userId).get().getAnimals();
 
         return ResponseEntity.ok(animals);
     }
 
     @GetMapping(value = "/api/users/{userId}/animals/{animalId}", produces = {"application/json"})
-    private ResponseEntity addAnimalToUser(@PathVariable Long userId, @PathVariable Long animalId) {
+    private ResponseEntity<User> addAnimalToUser(@PathVariable Long userId, @PathVariable Long animalId) throws
+            UserNotFoundException, UserAlreadyHaveAnimalException,
+            AnimalNotFoundException, NoAccessException {
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         CustomUserDetails principal = (CustomUserDetails) authentication.getPrincipal();
-        User user = usersRepository.findById(userId).get();
-        Animal animal = animalsRepository.findById(animalId).get();
+        User user = userService.findById(userId).get();
+        Animal animal = animalService.findById(animalId).get();
 
-        if (animalsRepository.findById(animalId).isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body("{\n\"status\": 404,\n\"message\": \"This animal doesn't exist\"\n}");
+        if (animalService.findById(animalId).isEmpty()) {
+            throw new AnimalNotFoundException();
         }
 
-        if (usersRepository.findById(userId).isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body("{\n\"status\": 404, \n\"message\": \"This user doesn't exist\"\n}");
+        if (userService.findById(userId).isEmpty()) {
+            throw new UserNotFoundException();
         }
 
-        if (usersRepository.findById(userId).isPresent()
-                && !principal.getUsername().equals(user.getUsername())) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body("{\n\"status\": 401, \n\"message\": \"You don't have access to this user's list\"\n}");
+        if (userService.findById(userId).isPresent() && !principal.getUsername().equals(user.getUsername())) {
+            throw new NoAccessException();
         }
 
-        if (usersRepository.findById(userId).get().getAnimals().contains(animalsRepository.findById(animalId).get())) {
-            return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body("{\n\"status\": 409, \n\"message\": \"This user already have this animal\"\n}");
+        if (userService.findById(userId).get().getAnimals().contains(animalService.findById(animalId).get())) {
+            throw new UserAlreadyHaveAnimalException();
         }
-
-
-        userService.addAnimal(user, animal);
-        return ResponseEntity
-                .ok("{\n\"status\": 200, \n\"message\": \"Animal " + animal.getNickname() + " have been added to "
-                        + principal.getUsername() + " successfully\"\n}");
+        return ResponseEntity.ok().body(userService.addAnimalToUser(user, animal));
     }
 
     @DeleteMapping(value = "/api/users/{userId}/animals/{animalId}", produces = {"application/json"})
-    private ResponseEntity deleteAnimalFromUser(@PathVariable Long userId, @PathVariable Long animalId) {
+    private ResponseEntity<User> deleteAnimalFromUser(@PathVariable Long userId, @PathVariable Long animalId) throws
+            UserNotFoundException, NoAccessException,
+            AnimalNotFoundException {
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         CustomUserDetails principal = (CustomUserDetails) authentication.getPrincipal();
 
-        User user = usersRepository.findById(userId).get();
+        User user = userService.findById(userId).get();
 
-        if (usersRepository.findById(userId).isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body("{\n\"status\": 404, \n\"message\": \"This user doesn't exist\"\n}");
+        if (userService.findById(userId).isEmpty()) {
+            throw new UserNotFoundException();
         }
 
-        if (usersRepository.findById(userId).isPresent()
-                && !principal.getUsername().equals(user.getUsername())) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body("{\n\"status\": 401, \"message\": \"You don't have access to this user's list\"}");
+        if (userService.findById(userId).isPresent() && !principal.getUsername().equals(user.getUsername())) {
+            throw new NoAccessException();
         }
 
 
-        if (animalsRepository.findById(animalId).isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body("{\n\"status\": 404, \"message\": \"This animal doesn't exist\"}");
+        if (animalService.findById(animalId).isEmpty()) {
+            throw new AnimalNotFoundException();
         }
 
-        Animal animal = animalsRepository.findById(animalId).get();
-        userService.deleteAnimal(user, animal);
-        return ResponseEntity
-                .ok("{\n\"status\": 200, \n\"message\": \"Animal " + animal.getNickname() + " have been deleted from user "
-                        + principal.getUsername() + " successfully\"\n}");
+        Animal animal = animalService.findById(animalId).get();
+        userService.deleteAnimalFromUser(user, animal);
+        return ResponseEntity.status(HttpStatus.OK).body(user);
     }
 
     @PostMapping(value = "/register", produces = "application/json")
-    private ResponseEntity register(@Valid @RequestBody User user) {
+    private ResponseEntity<User> register(@Valid @RequestBody User user) throws
+            UserAlreadyExistsException {
 
-        if (usersRepository.findByUsername(user.getUsername()).isPresent()) {
-            return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body("{\n\"status\": 409, \n\"message\": \"This username already exists!\"\n}");
+        if (userService.findByUsername(user.getUsername()).isPresent()) {
+            throw new UserAlreadyExistsException();
         }
         user.setPassword(bCryptPasswordEncoder.encode(user.getPassword()));
-        user.addRole(rolesRepository.findByName("USER"));
-        usersRepository.save(user);
-        return ResponseEntity
-                .ok("{\n\"status\": 200, \n\"message\": \"You have been signed up successfully!\"\n}");
+        user.addRole(roleService.findByName("USER"));
+        userService.save(user);
+        return ResponseEntity.status(HttpStatus.OK).body(user);
     }
 
     @DeleteMapping(value = "/api/users/{userId}", produces = "application/json")
-    private ResponseEntity deleteUser(@PathVariable Long userId) {
+    private ResponseEntity<User> deleteUser(@PathVariable Long userId) throws
+            NoAccessException, UserNotFoundException {
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        User user = usersRepository.findById(userId).get();
+        User user = userService.findById(userId).get();
 
         if (!authentication.getAuthorities().contains("ADMIN")) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body("{\n\"status\": 401, \n\"message\": \"You don't have access\"\n}");
+            throw new NoAccessException();
         }
 
-        if (usersRepository.findById(userId).isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body("{\n\"status\": 404, \n\"message\": \"This user doesn't exist\"\n}");
+        if (userService.findById(userId).isEmpty()) {
+            throw new UserNotFoundException();
         }
-        usersRepository.delete(user);
-        return ResponseEntity.ok("{\n\"status\": 200, \n\"message\": \"User have been deleted successfully!\"");
+        userService.delete(user);
+        return ResponseEntity.status(HttpStatus.OK).body(user);
     }
 
 
