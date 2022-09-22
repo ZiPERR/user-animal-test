@@ -4,7 +4,7 @@ plugins {
 	id 'java'
 }
 
-group = 'artplancom'
+group = 'kit'
 version = '0.2'
 sourceCompatibility = '11'
 

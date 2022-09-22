@@ -1,4 +1,4 @@
-package artplancom.test;
+package kit.test;
 
 import artplancom.test.models.Role;
 import artplancom.test.repositories.RolesRepository;
